@@ -1,0 +1,20 @@
+= TiledTmx
+
+Ruby library for reading/writing
+{Tiled map files}[http://www.mapeditor.org].
+
+This is currently under heavy development. Don’t
+use it if you don’t know exactly what you’re doing.
+
+== Installation
+
+TODO
+
+== Usage
+
+  require "tiled_tmx"
+  # TODO
+
+== License
+
+TODO

@@ -1,9 +1,3 @@
-gem "nokogiri"
-require "nokogiri"
-require_relative "tileset"
-require_relative "tilelayer"
-require_relative "objectgroup"
-require_relative "imagelayer"
 module TiledTmx
 	class Map
 		attr_accessor :properties
