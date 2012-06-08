@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 module TiledTmx
 	class Map
 		attr_accessor :properties
@@ -21,10 +22,21 @@ module TiledTmx
 				obj.draw(self,x,y,z+z_off,x_scale,y_scale,&block)
 			}
 		end
-		
+
+		#Loads a TMX map from a file.
+		#==Parameter
+		#[pathname] The path to load from. Either a string or a
+		#           Pathname object.
+		#==Return value
+		#An instance of this class.
 		def self.load_xml(pathname)
 			root = File.open(pathname) { |io| Nokogiri::XML(io).root }
-			temp = new
+			temp = allocate
+			temp.instance_eval {
+				@tilesets   = {}
+				@layers     = []
+				@properties = {}
+			}
 			
 			temp.height = root[:height].to_i
 			temp.width = root[:width].to_i
@@ -57,7 +69,19 @@ module TiledTmx
 			}
 			return temp
 		end
-		
+
+		#call-seq:
+		#	 to_xml()     → a_string
+		#	 to_xml(path)
+		#
+		#Writes out the TMX map as XML markup.
+		#==Parameter
+		#[path] (nil) Currently ignored.
+		#==Return value
+		#In the first form without +path+, returns a UTF-8-encoded string
+		#containing the XML markup for the TMX map. The second form
+		#doesn’t return anything important as the XML is directly written
+		#to a (UTF-8-encoded) file.
 		def to_xml(path=nil)
 			builder = Nokogiri::XML::Builder.new(:encoding => 'UTF-8') do |xml|
 				xml.map(
@@ -84,6 +108,7 @@ module TiledTmx
 					@layers.each{|obj| obj.to_xml(xml)}
 				}
 			end
+
 			return builder.to_xml
 		end
 	end
