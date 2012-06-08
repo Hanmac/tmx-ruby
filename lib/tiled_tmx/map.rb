@@ -76,9 +76,7 @@ module TiledTmx
 		#
 		#Writes out the TMX map as XML markup.
 		#==Parameter
-		#[path] (nil) If a string or Pathname object, open this file
-		#       and dump the XML markup into that file. If nil, just
-		#       return the XML as a string.
+		#[path] (nil) Currently ignored.
 		#==Return value
 		#In the first form without +path+, returns a UTF-8-encoded string
 		#containing the XML markup for the TMX map. The second form
@@ -111,11 +109,7 @@ module TiledTmx
 				}
 			end
 
-			if path
-				File.open(path, "w"){|f| f.write(builder.to_xml)}
-			else
-				builder.to_xml
-			end
+			return builder.to_xml
 		end
 	end
 	
