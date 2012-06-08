@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 module TiledTmx
 	class Map
 		attr_accessor :properties
@@ -57,7 +58,21 @@ module TiledTmx
 			}
 			return temp
 		end
-		
+
+		#call-seq:
+		#	 to_xml()     → a_string
+		#	 to_xml(path)
+		#
+		#Writes out the TMX map as XML markup.
+		#==Parameter
+		#[path] (nil) If a string or Pathname object, open this file
+		#       and dump the XML markup into that file. If nil, just
+		#       return the XML as a string.
+		#==Return value
+		#In the first form without +path+, returns a UTF-8-encoded string
+		#containing the XML markup for the TMX map. The second form
+		#doesn’t return anything important as the XML is directly written
+		#to a (UTF-8-encoded) file.
 		def to_xml(path=nil)
 			builder = Nokogiri::XML::Builder.new(:encoding => 'UTF-8') do |xml|
 				xml.map(
@@ -84,7 +99,12 @@ module TiledTmx
 					@layers.each{|obj| obj.to_xml(xml)}
 				}
 			end
-			return builder.to_xml
+
+			if path
+				File.open(path, "w"){|f| f.write(builder.to_xml)}
+			else
+				builder.to_xml
+			end
 		end
 	end
 	
