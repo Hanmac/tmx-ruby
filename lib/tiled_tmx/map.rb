@@ -22,10 +22,21 @@ module TiledTmx
 				obj.draw(self,x,y,z+z_off,x_scale,y_scale,&block)
 			}
 		end
-		
+
+		#Loads a TMX map from a file.
+		#==Parameter
+		#[pathname] The path to load from. Either a string or a
+		#           Pathname object.
+		#==Return value
+		#An instance of this class.
 		def self.load_xml(pathname)
 			root = File.open(pathname) { |io| Nokogiri::XML(io).root }
-			temp = new
+			temp = allocate
+			temp.instance_eval {
+				@tilesets   = {}
+				@layers     = []
+				@properties = {}
+			}
 			
 			temp.height = root[:height].to_i
 			temp.width = root[:width].to_i
