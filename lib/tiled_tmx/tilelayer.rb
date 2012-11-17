@@ -122,8 +122,10 @@ module TiledTmx
         # we increment a second counter (which also starts at 0). When we reach the
         # current position in the `data' array, the value of that second counter is
         # our Y coordinate. And, guess it? This is a simple division.
-        x = map.width % index
-        y = map.width / index
+        # We than need to take care to get correct numbers. Array indexing starts
+        # at 0, but dividing/moduling by 0 is bad. ?
+        x = index % map.width
+        y = index / map.width
 
         # If the GID is zero, this means this tile is empty.
         # We therefore just skip all the style calculations
@@ -145,7 +147,9 @@ module TiledTmx
         # Now `gid' contains solely the tileset position information. Use it to
         # find the first tileset whose first global ID is smaller or equal to
         # the global ID of the tile `gid' represents.
-        tileset_gid, tileset = map.tilesets.reverse.find{|first_gid, tileset| first_gid <= gid}
+        tileset_gid = map.tilesets.keys.sort.reverse.find{|first_gid| first_gid <= gid}
+        raise("Cannot resolve tileset GID: #{tileset_gid}!") unless tileset_gid
+        tileset = map.tilesets[tileset_gid]
         # The tile IDs inside the tileset are relative to 0, but the GID we
         # have for our tile is global for all tilesets. As we already determined
         # which tileset it specifies above, we can just convert the absolute GID
