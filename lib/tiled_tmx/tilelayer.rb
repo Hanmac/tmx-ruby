@@ -80,8 +80,8 @@ module TiledTmx
 		end
 
     # call-seq:
-    #   each_tile(map)                                   → an_enumerator
-    #   each_tile(map){|x, y, tile, tileset, flips| ...}
+    #   each_tile(map)                                                → an_enumerator
+    #   each_tile(map){|x, y, tile, tileset, relative_id, flips| ...}
     #
     # Map the layer onto +map+ and iterate over the result.
     # == Parameter
@@ -99,6 +99,8 @@ module TiledTmx
     # [tile]
     #   The Tileset::Tile object for that coordinate on this layer.
     #   +nil+ is this is an empty field.
+    # [relative_id]
+    #   The index of +tile+ in the +tileset+, starting at 1.
     # [tileset]
     #   The Tileset object the +tile+ belongs to. +nil+ if this is
     #   an empty field.
@@ -155,10 +157,11 @@ module TiledTmx
         # which tileset it specifies above, we can just convert the absolute GID
         # into a one relative to the determined tileset by removing the absolute
         # part from it.
-        tile = tileset.tiles[gid - tileset_gid]
+        relative_id = gid - tileset_gid
+        tile = tileset.tiles[relative_id]
 
         # Tell our customer
-        yield(x, y, tile, tileset, flips)
+        yield(x, y, tile, relative_id, tileset, flips)
       end
     end
 		

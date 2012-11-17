@@ -1,3 +1,4 @@
+# -*- coding: undecided -*-
 require_relative "path"
 
 module TiledTmx
@@ -55,6 +56,24 @@ module TiledTmx
 		def draw(id,x,y,z,opacity,rot,x_scale,y_scale,&block)
 			raise NotImplementedError.new("need to add #draw function")
 		end
+
+    # Returns the position of the tile specified by +id+
+    # on the tileset graphic, in pixels. +id+ is starts at
+    # 1 for the top-left tile and ends at width*height at
+    # the bottom-right tile. Return value is a two-element
+    # array of form [x, y].
+    #
+    # FIXME: This method should take @spacing and @margin
+    # into account.
+    def tile_position(id)
+      width  = @width / @tilewidth
+      height = @height / @tileheight
+
+      x = id % width
+      y = id / height
+
+      [x * @tilewidth, y * @tilewidth]
+    end
 		
 		def to_xml(xml,k=nil)
 			
