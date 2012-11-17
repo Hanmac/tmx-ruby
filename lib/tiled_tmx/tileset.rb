@@ -1,4 +1,4 @@
-# -*- coding: undecided -*-
+# -*- coding: utf-8 -*-
 require_relative "path"
 
 module TiledTmx
@@ -70,9 +70,9 @@ module TiledTmx
       height = @height / @tileheight
 
       x = id % width
-      y = id / height
+      y = id / width
 
-      [x * @tilewidth, y * @tilewidth]
+      [x * @tilewidth, y * @tileheight]
     end
 		
 		def to_xml(xml,k=nil)
