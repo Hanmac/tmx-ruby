@@ -80,8 +80,8 @@ module TiledTmx
 		end
 
     # call-seq:
-    #   each_tile(map)                            → an_enumerator
-    #   each_tile(map){|x, y, tile, tileset| ...}
+    #   each_tile(map)                                   → an_enumerator
+    #   each_tile(map){|x, y, tile, tileset, flips| ...}
     #
     # Map the layer onto +map+ and iterate over the result.
     # == Parameter
