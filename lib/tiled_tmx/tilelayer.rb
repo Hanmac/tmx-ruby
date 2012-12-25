@@ -167,27 +167,19 @@ module TiledTmx
 		
 		def draw(map,x_off,y_off,z_off,x_scale,y_scale,&block)
 			return unless @visible
-			@data.each_with_index do |id,i|
-				next if id.zero?
-				d_flag = !(id & (2 << 28)).zero?
-				h_flag = !(id & (2 << 29)).zero?
-				v_flag = !(id & (2 << 30)).zero?
+			
+			each_tile(map){|x, y, tile, relative_id, tileset, flips|
 				
-				id &= ~(14 << 28)
-				
-				set = map.tilesets.inject(nil){|m,(k,v)| k > id ? m : v}
-				next if set.nil?
-				x = x_off + map.tilewidth*(i % map.width)*x_scale 
-				y = y_off + map.tileheight*(i / map.width)*y_scale - set.tileheight + map.tileheight
-				
-				id -= map.tilesets.key(set)
+				next if tileset.nil?
+				x = x_off + map.tilewidth*x*x_scale 
+				y = y_off + map.tileheight*y*y_scale - tileset.tileheight + map.tileheight
 				
 				z = z_off
 				
 				z_prop = @properties["z"]
 				z = z_prop.to_i if(z_prop)
 				
-				tile  = set.tiles[id]
+				tile  = tileset.tiles[relative_id]
 				if(tile)
 					z_prop = tile.properties["z"]
 					if(z_prop)
@@ -200,13 +192,14 @@ module TiledTmx
 						end
 					end
 				end
-				set.draw(id,
-					x,y, z, opacity, d_flag ? 180 : 0,
-					x_scale * (v_flag ? -1 : 1),
-					y_scale * (h_flag ? -1 : 1),&block)
-			
-			end
+				tileset.draw(relative_id,
+					x,y, z, opacity, flips[:diagonal] ? 180 : 0,
+					x_scale * (flips[:vertical] ? -1 : 1),
+					y_scale * (flips[:horizontal] ? -1 : 1),&block)
+			}
 		end
+		
+		
 		def self.load_xml(node)
 			temp = super(node,new)
 			
