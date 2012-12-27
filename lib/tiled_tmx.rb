@@ -1,6 +1,8 @@
 gem "nokogiri"
 require "nokogiri"
 
+require "pathname"
+
 # Main namespace for this library.
 module TiledTmx
 end

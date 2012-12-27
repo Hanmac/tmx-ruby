@@ -101,7 +101,7 @@ module TiledTmx
 			attr_accessor :sets
 			def load_xml(node)
 				if(!node.is_a?(Nokogiri::XML::Node))
-					s = node.to_s
+					s = Pathname.new(node.to_s)
 					if(!@sets.include?(s))
 						@sets[s]=load_xml(
 							File.open(s) { |io| Nokogiri::XML(io).root}

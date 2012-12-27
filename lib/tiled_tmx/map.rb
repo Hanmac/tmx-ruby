@@ -100,7 +100,7 @@ module TiledTmx
 					@tilesets.each {|k,v|
 						s=Tileset.sets.key(v)
 						if(!s.nil?)
-							xml.tileset(:firstgid => k,:source=>s)
+							xml.tileset(:firstgid => k,:source=>s.relative_path_from(Pathname.new(path).dirname.expand_path))
 						else
 							v.to_xml(xml,k)
 						end
