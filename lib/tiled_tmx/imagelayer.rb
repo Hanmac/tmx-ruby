@@ -6,7 +6,7 @@ module TiledTmx
 		
 		
 		def self.load_xml(node)
-			temp = super(node,new)
+			temp = super
 			
 			temp.image = Path.new(node.xpath("image")[0][:source],node)
 			temp.trans = node.xpath("image")[0][:trans]

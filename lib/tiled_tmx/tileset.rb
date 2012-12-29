@@ -3,36 +3,69 @@ require_relative "path"
 
 module TiledTmx
 	class Tileset
-
-		class Tile
-			attr_accessor :properties
+		include PropertySet
+		class Terrain
+			include PropertySet
 			
-			def initialize
-				@properties = {}
+			attr_accessor :name
+			attr_accessor :tile
+			
+			def initialize(node = {})
+				@name = node[:name]
+				@tile = (o = node[:tile]).nil? ? nil : o.to_i
+				super
 			end
-		
+			
 			def self.load_xml(node)
-				temp = new
-				node.xpath("properties/property").each {|obj|
-					temp.properties[obj[:name]]=obj[:value]
-				}
+				temp = new(node)
+				temp.load_xml_properties(node)
 				
 				return temp
 			end
 			
-			def to_xml(xml,id)
-				xml.tile(:id=>id) {
-					xml.properties {
-						@properties.each {|k,v|
-							xml.property(:name =>k,:value =>v)
-						}
-					}
+			def to_xml(xml)
+				hash = {:name => @name}
+				hash[:tile] = @tile if @tile
+				xml.terrain(hash) {
+					to_xml_properties(xml)
+				}
+			end
+		end
+		class Tile
+			include PropertySet
+			
+			attr_accessor :id
+			attr_accessor :terrain
+			
+			def initialize(node = {})
+				@id = node[:id].to_i
+				
+				if(terrain = node[:terrain])
+					@terrain = terrain.split(",",-1).map {|i| i.empty? ? nil : i.to_i}
+				else
+					@terrain = []
+				end
+				super
+			end
+			
+			
+			def self.load_xml(node)
+				temp = new(node)
+				temp.load_xml_properties(node)
+				
+				return temp
+			end
+			
+			def to_xml(xml)
+				hash = {:id => @id}
+				hash[:terrain] = @terrain.join(",") unless @terrain.empty?
+				
+				xml.tile(hash) {
+					to_xml_properties(xml)
 				}
 			end
 		end
 
-
-		attr_accessor :properties
 		
 		attr_accessor :name
 		
@@ -48,9 +81,20 @@ module TiledTmx
 		attr_accessor :source
 		
 		attr_accessor :tiles
-		def initialize
-			@properties = {}
+		attr_accessor :terrains
+		
+		def initialize(node = {})
+			@name = node[:name]
+			
+			@tilewidth = node[:tilewidth].to_i
+			@tileheight = node[:tileheight].to_i
+			
+			@spacing = node[:spacing].to_i
+			@margin = node[:margin].to_i
+			
+			super
 			@tiles = {}
+			@terrains = []
 		end
 		
 		def draw(id,x,y,z,opacity,rot,x_scale,y_scale,&block)
@@ -82,17 +126,18 @@ module TiledTmx
 			
 			hash.merge!(:name=>@name,
 				:tilewidth=>@tilewidth,
-				:tileheight=>@tileheight,
-				:spacing=>@spacing, :margin=>@margin)
+				:tileheight=>@tileheight)
+			
+			hash[:spacing] = @spacing unless @spacing.zero?
+			hash[:margin] = @margin unless @margin.zero?
 			
 			xml.tileset(hash) {
-				xml.properties {
-					@properties.each {|k,v|
-						xml.property(:name =>k,:value =>v)
-					}
-				}
+				to_xml_properties(xml)
 				xml.image(:source=>@source.relpath,:width=>@width,:height=>@height)
-				@tiles.each {|k,v|v.to_xml(xml,k)}
+				xml.terraintypes {
+					@terrains.each  {|v|v.to_xml(xml)}
+				} unless @terrains.empty?
+				@tiles.each_value {|v|v.to_xml(xml)}
 			}
 		end
 		
@@ -115,15 +160,15 @@ module TiledTmx
 				temp.tilewidth = node[:tilewidth].to_i
 				temp.tileheight = node[:tileheight].to_i
 				
-				temp.width = node.xpath("image")[0][:width].to_i
-				temp.height = node.xpath("image")[0][:height].to_i
-				
 				temp.spacing = node[:spacing].to_i
 				temp.margin = node[:margin].to_i
 				
-				node.xpath("properties/property").each {|obj|
-					temp.properties[obj[:name]]=obj[:value]
-				}
+				temp.width = node.xpath("image")[0][:width].to_i
+				temp.height = node.xpath("image")[0][:height].to_i
+				
+				temp.terrains = node.xpath("terraintypes/terrain").map {|obj| Terrain.load_xml(obj)}
+				
+				temp.load_xml_properties(node)
 			
 				temp.source = Path.new(node.xpath("image")[0][:source],node)
 			

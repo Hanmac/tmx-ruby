@@ -1,28 +1,36 @@
+# -*- coding: utf-8 -*-
 module TiledTmx
 	class Layer
-	
-	
-		attr_accessor :properties
+		include PropertySet
 		
 		attr_accessor :name
 		
 		attr_accessor :opacity
 		attr_accessor :visible
 		
-		def initialize
-			@opacity = 1.0
-			@visible = true
-			@properties = {}
+		def initialize(node = {})
+			@name = node[:name]
+			@opacity = node[:opacity].nil? ? 1.0 : node[:opacity].to_f
+			
+			#dont use it directly it is deplicated
+			@width = node[:width].to_i
+			@height = node[:height].to_i
+			
+			@visible = case node[:visible]
+			when String
+				node[:visible] != "0"
+			when nil
+				true
+			else
+				!!node[:visible]
+			end
+			
+			super
 		end
-		def self.load_xml(node,obj)
+		def self.load_xml(node)
+			obj = new(node)
 			
-			obj.name = node[:name]
-			obj.opacity = node[:opacity].to_f unless node[:opacity].nil?
-			obj.visible = node[:visible] != "0"
-			
-			node.xpath("properties/property").each {|prop|
-				obj.properties[prop[:name]]=prop[:value]
-			}
+			obj.load_xml_properties(node)
 			
 			return obj
 		end
@@ -35,11 +43,7 @@ module TiledTmx
 			parent[:visible]=0 unless @visible
 			parent[:opacity]=@opacity unless @opacity == 1.0
 
-			xml.properties {
-				@properties.each {|k,v|
-					xml.property(:name =>k,:value =>v)
-				}
-			} unless @properties.nil?
+			to_xml_properties(xml)
 		end
 	end
 end

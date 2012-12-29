@@ -15,9 +15,10 @@ module TiledTmx
 				return "#{x},#{y}"
 			end
 		end
-	
+		
+		include PropertySet
+		
 		attr_accessor :name
-		attr_accessor :properties
 		attr_accessor :type
 		attr_accessor :gid
 		attr_accessor :x
@@ -29,7 +30,6 @@ module TiledTmx
 		attr_accessor :polygon
 		attr_accessor :polyline
 		def initialize
-			@properties = {}
 			@polygon = []
 			@polyline = []
 		end
@@ -114,9 +114,8 @@ module TiledTmx
 			temp.x = node[:x].to_i
 			temp.y = node[:y].to_i
 			
-			node.xpath("properties/property").each {|obj|
-				temp.properties[obj[:name]]=obj[:value]
-			}
+			temp.load_xml_properties(node)
+			
 			node.xpath("polygon").each{|obj|
 				obj["points"].split(" ").each {|cord|
 					temp.polygon << Point.new(*cord.split(",").map(&:to_i))
@@ -138,11 +137,7 @@ module TiledTmx
 			hash[:height]=@height unless @height.nil?
 			
 			xml.object(hash.merge({:x=>@x,:y=>@y})) {
-				xml.properties {
-						@properties.each {|k,v|
-							xml.property(:name =>k,:value =>v)
-						}
-					} unless @properties.nil?
+				to_xml_properties(xml)
 				if !@polygon.empty?
 					xml.polygon(:points=>@polygon.map(&:to_s).join(" "))
 				elsif !@polyline.empty?
@@ -159,9 +154,10 @@ module TiledTmx
 		attr_accessor :objects
 		
 		
-		def initialize
+		def initialize(node = {})
 			super
 			@objects = {}
+			@color = node[:color] unless node[:color].nil?
 		end
 		
 		def each(&block)
@@ -176,12 +172,11 @@ module TiledTmx
 				z_prop = @properties["z"]
 				z = z_prop.to_i if(z_prop)
 
-			@objects.each {|obj| obj.draw(map,x_off,y_off,z,color,opacity,x_scale,y_scale) } if @visible
+			@objects.each {|obj| obj.draw(map,x_off,y_off,z,color,opacity,x_scale,y_scale) }
 		end
 
 		def self.load_xml(node)
-			temp = super(node,new)
-			temp.color = node[:color] unless node[:color].nil?
+			temp = super
 			
 			temp.objects = node.xpath("object").map {|obj| Object.load_xml(obj)}
 			return temp

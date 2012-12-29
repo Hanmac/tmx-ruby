@@ -16,9 +16,9 @@ module TiledTmx
 		attr_accessor :encoding
 		attr_accessor :compression
 		
-		def initialize
+		def initialize(node = {})
 			super
-			@data = []
+			@data = Array.new(@width*@height,0)
 		end
 		def [](i)
 			return @data[i]
@@ -27,8 +27,15 @@ module TiledTmx
 			return @data[i]=value
 		end
 		def data
-			temp = @data.pack("V*") if encoding
-			case compression
+			case @encoding
+			when "csv"
+				temp = @data.each_slice(@width).map{|s|s.join(",")}.join(",\n")
+			when nil
+				temp = @data
+			else
+				temp = @data.pack("V*")
+			end
+			case @compression
 			when "zlib"
 				require "zlib"
 				temp = Zlib::Deflate.deflate(temp)
@@ -36,45 +43,38 @@ module TiledTmx
 				require "zlib"
 				require "stringio"
 				string = ""
-				begin
-					io = StringIO.new(string)
-					gz = Zlib::GzipWriter.new(io)
-					gz.write temp
-				ensure
-					gz.close
-				end
+				Zlib::GzipWriter.wrap(StringIO.new(string)){|gz|gz.write(temp) }
 				temp = string
 			end
-			if encoding == "base64"
+			if @encoding == "base64"
 				require "base64"
-				temp = Base64.encode64(temp)
+				temp = "\n" + (" " * INDENT * 3) + Base64.encode64(temp).gsub("\n","") + "\n" + (" " * INDENT * 2)
+			else
+				temp = "\n#{temp}\n"
 			end
 			return temp
 		end
 		def data=(temp)
-			if encoding == "base64"
+			if @encoding == "base64"
 				require "base64"
 				temp = Base64.decode64(temp)
 			end
-			case compression
+			case @compression
 			when "zlib"
 				require "zlib"
 				temp = Zlib::Inflate.inflate(temp)
 			when "gzip"
 				require "zlib"
 				require "stringio"
-				begin
-					io = StringIO.new(temp)
-					gz = Zlib::GzipReader.new(io)
-					temp = gz.read
-				ensure
-					gz.close
-				end
+				temp = Zlib::GzipReader.wrap(StringIO.new(temp),&:read)
 			end
-			if encoding
-				@data = temp.unpack("V*")
-			else
+			case @encoding
+			when "csv"
+				@data = temp.split(",").map(&:to_i)
+			when nil
 				@data = temp
+			else
+				@data = temp.unpack("V*")
 			end
 			return temp
 		end
@@ -166,8 +166,6 @@ module TiledTmx
     end
 		
 		def draw(map,x_off,y_off,z_off,x_scale,y_scale,&block)
-			return unless @visible
-			
 			each_tile(map){|x, y, tile, relative_id, tileset, flips|
 				
 				next if tileset.nil?
@@ -179,7 +177,6 @@ module TiledTmx
 				z_prop = @properties["z"]
 				z = z_prop.to_i if(z_prop)
 				
-				tile  = tileset.tiles[relative_id]
 				if(tile)
 					z_prop = tile.properties["z"]
 					if(z_prop)
@@ -201,7 +198,7 @@ module TiledTmx
 		
 		
 		def self.load_xml(node)
-			temp = super(node,new)
+			temp = super
 			
 			temp.encoding = node.xpath("data")[0][:encoding]
 			temp.compression = node.xpath("data")[0][:compression]

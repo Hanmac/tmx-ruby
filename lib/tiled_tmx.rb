@@ -8,6 +8,7 @@ module TiledTmx
 end
 
 require_relative "tiled_tmx/version"
+require_relative "tiled_tmx/propertyset"
 require_relative "tiled_tmx/map"
 require_relative "tiled_tmx/tileset"
 require_relative "tiled_tmx/tilelayer"

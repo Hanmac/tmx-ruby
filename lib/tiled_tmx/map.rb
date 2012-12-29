@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 module TiledTmx
+	INDENT = 1
 	class Map
+		include PropertySet
 		attr_accessor :properties
 		attr_accessor :tilesets
 		attr_accessor :layers #[layers]
@@ -12,14 +14,23 @@ module TiledTmx
 		attr_accessor :tilewidth
 		attr_accessor :tileheight
 
-		def initialize
+		attr_accessor :dtd
+
+		def initialize(node = {})
+			@height = node[:height].to_i
+			@width = node[:width].to_i
+			@tileheight = node[:tileheight].to_i
+			@tilewidth = node[:tilewidth].to_i
+			
+			@orientation = (node[:orientation] || :orthogonal).to_sym
+			
 			@tilesets={}
 			@layers = []
-			@properties = {}
+			super
 		end
 		def draw(x,y,z,x_scale = 1, y_scale = 1,&block)
 			@layers.each_with_index{|obj,z_off|
-				obj.draw(self,x,y,z+z_off,x_scale,y_scale,&block)
+				obj.draw(self,x,y,z+z_off,x_scale,y_scale,&block) if obj.visible
 			}
 		end
 
@@ -30,22 +41,14 @@ module TiledTmx
 		#==Return value
 		#An instance of this class.
 		def self.load_xml(pathname)
-			root = File.open(pathname) { |io| Nokogiri::XML(io).root }
-			temp = allocate
-			temp.instance_eval {
-				@tilesets   = {}
-				@layers     = []
-				@properties = {}
-			}
 			
-			temp.height = root[:height].to_i
-			temp.width = root[:width].to_i
+			doc = File.open(pathname) { |io| Nokogiri::XML(io) }
+			#p doc.validate
+			root = doc.root
 			
-			temp.tileheight = root[:tileheight].to_i
-			temp.tilewidth = root[:tileheight].to_i
+			temp = new(root)
 			
-			temp.orientation = root[:orientation].to_sym
-			
+
 			root.xpath("tileset").each {|node|
 				if(node[:source].nil?)
 					tileset = Tileset.load_xml(node)
@@ -64,9 +67,9 @@ module TiledTmx
 				temp.layers << layertypes[node.name].load_xml(node)
 			}
 			
-			root.xpath("properties/property").each {|obj|
-				temp.properties[obj[:name]]=obj[:value]
-			}
+			temp.load_xml_properties(root)
+			
+			temp.dtd = !!root.internal_subset
 			return temp
 		end
 
@@ -84,6 +87,7 @@ module TiledTmx
 		#to a (UTF-8-encoded) file.
 		def to_xml(path=nil)
 			builder = Nokogiri::XML::Builder.new(:encoding => 'UTF-8') do |xml|
+				xml.doc.create_internal_subset("map",nil,"http://mapeditor.org/dtd/1.0/map.dtd") if @dtd
 				xml.map(
 					:version => "1.0",
 					:orientation=>@orientation,
@@ -92,15 +96,12 @@ module TiledTmx
 					:tilewidth=>@tilewidth,
 					:tileheight=>@tileheight) {
 					
-					xml.properties {
-						@properties.each {|k,v|
-							xml.property(:name =>k,:value =>v)
-						}
-					} unless @properties.nil?
+					to_xml_properties(xml)
 					@tilesets.each {|k,v|
 						s=Tileset.sets.key(v)
 						if(!s.nil?)
-							xml.tileset(:firstgid => k,:source=>s.relative_path_from(Pathname.new(path).dirname.expand_path))
+							source = path.nil? ? s : s.relative_path_from(Pathname.new(path).dirname.expand_path)
+							xml.tileset(:firstgid => k,:source=>source)
 						else
 							v.to_xml(xml,k)
 						end
@@ -109,7 +110,7 @@ module TiledTmx
 				}
 			end
 
-			return builder.to_xml
+			return builder.to_xml(:indent => INDENT)
 		end
 	end
 	
