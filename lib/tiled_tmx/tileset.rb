@@ -99,6 +99,27 @@ module TiledTmx
 		@sets = {}
 		class << self
 			attr_accessor :sets
+
+      # Loads a tileset from either an XML node or an external TSX file.
+      # == Parameter
+      # [node]
+      #   A Nokogiri::XML::Node describing the tileset’s toplevel node
+      #   inside a map file *or* a String/Pathname pointing to a TSX
+      #   file to load.
+      # == Return value
+      # A new Tileset instance.
+      # == Remarks
+      # This method honours the concept of "internal" and "external"
+      # tilesets, where an "internal" tileset is part of a map
+      # definition and an "external" one is only referenced inside
+      # a map. If you pass +node+ as an XML node (which is done
+      # internally when loading a map from a file containing an
+      # inline tileset definition in Map::load_xml) the constructed
+      # Tileset instance will be marked as an "internal" tileset,
+      # i.e. if added to a Map instance, the full tileset definition
+      # will be written out into the map XML. Otherwise, +node+
+      # is assumed to be a path to an "external" tileset, which will
+      # be loaded and the resulting instance will be marked as "external".
 			def load_xml(node)
 				if(!node.is_a?(Nokogiri::XML::Node))
 					s = Pathname.new(node.to_s)
