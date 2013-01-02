@@ -1,5 +1,4 @@
-require_relative "layer"
-
+# -*- coding: utf-8 -*-
 module TiledTmx
 	class Object
 		class Point
@@ -29,9 +28,22 @@ module TiledTmx
 		
 		attr_accessor :polygon
 		attr_accessor :polyline
-		def initialize
+		def initialize(node = {})
+
+			@name = node[:name]
+			@type = node[:type]
+			
+			@gid = node[:gid].to_i unless node[:gid].nil?
+			@width = node[:width].to_i unless node[:width].nil?
+			@height = node[:height].to_i unless node[:height].nil?
+			
+			@x = node[:x].to_i
+			@y = node[:y].to_i
+
 			@polygon = []
 			@polyline = []
+			
+			super
 		end
 		
 		def draw(map,x_off,y_off,z_off,color,opacity,x_scale,y_scale)
@@ -103,16 +115,7 @@ module TiledTmx
 		end
 
 		def self.load_xml(node)
-			temp = new
-			temp.name = node[:name]
-			temp.type = node[:type]
-			
-			temp.gid = node[:gid].nil? ? nil : node[:gid].to_i
-			temp.width = node[:width].nil? ? nil : node[:width].to_i
-			temp.height = node[:height].nil? ? nil : node[:height].to_i
-			
-			temp.x = node[:x].to_i
-			temp.y = node[:y].to_i
+			temp = new(node)
 			
 			temp.load_xml_properties(node)
 			
@@ -148,16 +151,21 @@ module TiledTmx
 	end
 
 	class ObjectGroup < Layer
-		include Enumerable
+		#include Enumerable
 		
 		attr_accessor :color
 		attr_accessor :objects
 		
 		
-		def initialize(node = {})
+		def initialize(map,node = {})
 			super
 			@objects = {}
 			@color = node[:color] unless node[:color].nil?
+		end
+		
+		def initialize_copy(old)
+			super
+			@objects = Marshal::load(Marshal::dump(old.objects))
 		end
 		
 		def each(&block)
@@ -175,7 +183,7 @@ module TiledTmx
 			@objects.each {|obj| obj.draw(map,x_off,y_off,z,color,opacity,x_scale,y_scale) }
 		end
 
-		def self.load_xml(node)
+		def self.load_xml(map,node)
 			temp = super
 			
 			temp.objects = node.xpath("object").map {|obj| Object.load_xml(obj)}

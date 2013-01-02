@@ -8,13 +8,12 @@ module TiledTmx
 		attr_accessor :opacity
 		attr_accessor :visible
 		
-		def initialize(node = {})
+		attr_accessor :map
+		
+		def initialize(map, node = {})
+			self.map = map
 			@name = node[:name]
 			@opacity = node[:opacity].nil? ? 1.0 : node[:opacity].to_f
-			
-			#dont use it directly it is deplicated
-			@width = node[:width].to_i
-			@height = node[:height].to_i
 			
 			@visible = case node[:visible]
 			when String
@@ -27,8 +26,14 @@ module TiledTmx
 			
 			super
 		end
-		def self.load_xml(node)
-			obj = new(node)
+		
+		def initialize_copy(old)
+			super
+			@map = nil
+		end
+		
+		def self.load_xml(map,node)
+			obj = new(map,node)
 			
 			obj.load_xml_properties(node)
 			
@@ -38,8 +43,8 @@ module TiledTmx
 		def to_xml(xml)
 			parent = xml.parent
 			parent[:name]=@name
-			parent[:width]=parent.parent[:width]
-			parent[:height]=parent.parent[:height]
+			parent[:width]=@map.width if @map
+			parent[:height]=@map.height if @map
 			parent[:visible]=0 unless @visible
 			parent[:opacity]=@opacity unless @opacity == 1.0
 

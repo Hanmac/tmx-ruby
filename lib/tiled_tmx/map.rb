@@ -1,11 +1,18 @@
 # -*- coding: utf-8 -*-
 module TiledTmx
 	INDENT = 1
+	
+	LayerTypes = {
+		"layer" => TileLayer,
+		"objectgroup" => ObjectGroup,
+		"imagelayer" => ImageLayer
+	}
+	
 	class Map
 		include PropertySet
 		attr_accessor :properties
-		attr_accessor :tilesets
-		attr_accessor :layers #[layers]
+		#attr_accessor :tilesets
+		#attr_accessor :layers #[layers]
 		
 		attr_accessor :orientation
 		
@@ -28,12 +35,66 @@ module TiledTmx
 			@layers = []
 			super
 		end
+		
+		def initialize_copy(old)
+			super
+			@tilesets={}
+			@layers = []
+			
+			old.tilesets.each {|k,v|
+				@tilesets[k] = v.external? ? v : v.dup
+			}
+			old.each_layer {|l|add_layer(l.dup)}
+		end
+		
 		def draw(x,y,z,x_scale = 1, y_scale = 1,&block)
 			@layers.each_with_index{|obj,z_off|
 				obj.draw(self,x,y,z+z_off,x_scale,y_scale,&block) if obj.visible
 			}
 		end
 
+		def add_layer(layer,opts = {})
+			if(!layer.is_a?(Layer))
+				layer = LayerTypes[layer.to_s].new(self,opts)
+			end
+			layer.map = self
+			@layers << layer
+		end
+
+		def each_layer(&block)
+			return to_enum(__method__) unless block_given?
+			@layers.each(&block)
+			return self
+		end
+		
+		alias_method :layers,:each_layer
+
+		def get_layer(id)
+			return @layers[id]
+		end
+
+		def each_tileset(&block)
+			return to_enum(__method__) unless block_given?
+			@tilesets.each(&block)
+			return self
+		end
+
+		alias_method :tilesets,:each_tileset
+		
+		def each_tileset_key(&block)
+			return to_enum(__method__) unless block_given?
+			@tilesets.each_key(&block)
+			return self
+		end
+
+		
+		def get_tileset(first_gid)
+			return @tilesets[first_gid]
+		end
+		
+		def add_tileset(tileset,first_gid=nil)
+			@tilesets[first_gid] = tileset
+		end
 		#Loads a TMX map from a file.
 		#==Parameter
 		#[pathname] The path to load from. Either a string or a
@@ -55,16 +116,11 @@ module TiledTmx
 				else
 					tileset = Tileset.load_xml(Path.new(node[:source],node))
 				end
-				temp.tilesets[node[:firstgid].to_i]=tileset
-			}
-			layertypes = {
-				"layer" => TileLayer,
-				"objectgroup" => ObjectGroup,
-				"imagelayer" => ImageLayer
+				temp.add_tileset(tileset,node[:firstgid].to_i)
 			}
 			
-			root.xpath(layertypes.keys.join("|")).each {|node|
-				temp.layers << layertypes[node.name].load_xml(node)
+			root.xpath(LayerTypes.keys.join("|")).each {|node|
+				temp.add_layer(LayerTypes[node.name].load_xml(temp,node))
 			}
 			
 			temp.load_xml_properties(root)
@@ -98,8 +154,9 @@ module TiledTmx
 					
 					to_xml_properties(xml)
 					@tilesets.each {|k,v|
-						s=Tileset.sets.key(v)
-						if(!s.nil?)
+						
+						if(v.external?)
+							s=Tileset.sets.key(v)
 							source = path.nil? ? s : s.relative_path_from(Pathname.new(path).dirname.expand_path)
 							xml.tileset(:firstgid => k,:source=>source)
 						else

@@ -1,11 +1,19 @@
-require_relative "layer"
+# -*- coding: utf-8 -*-
 module TiledTmx
 	class ImageLayer < Layer
 		attr_accessor :image
 		attr_accessor :trans
 		
+		def initialize(map,node = {})
+			super
+		end
 		
-		def self.load_xml(node)
+		def initialize_copy(old)
+			super
+			@image = old.image.dup
+		end
+		
+		def self.load_xml(map,node)
 			temp = super
 			
 			temp.image = Path.new(node.xpath("image")[0][:source],node)

@@ -101,6 +101,13 @@ module TiledTmx
 			raise NotImplementedError.new("need to add #draw function")
 		end
 
+		def initialize_copy(old)
+			super
+			@tiles = Marshal::load(Marshal::dump(old.tiles))
+			@terrains = Marshal::load(Marshal::dump(old.terrains))
+			@source = old.source.dup
+		end
+
     # Returns the position of the tile specified by +id+
     # on the tileset graphic, in pixels. +id+ is starts at
     # 1 for the top-left tile and ends at width*height at
@@ -141,6 +148,10 @@ module TiledTmx
 			}
 		end
 		
+		def external?
+			return Tileset.sets.has_value?(self)
+		end
+		
 		@sets = {}
 		class << self
 			attr_accessor :sets
@@ -154,14 +165,7 @@ module TiledTmx
 					end
 					return @sets[s]
 				end
-				temp = new
-				temp.name = node[:name]
-				
-				temp.tilewidth = node[:tilewidth].to_i
-				temp.tileheight = node[:tileheight].to_i
-				
-				temp.spacing = node[:spacing].to_i
-				temp.margin = node[:margin].to_i
+				temp = new(node)
 				
 				temp.width = node.xpath("image")[0][:width].to_i
 				temp.height = node.xpath("image")[0][:height].to_i

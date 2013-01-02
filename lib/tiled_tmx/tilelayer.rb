@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-require_relative "layer"
 module TiledTmx
 	class TileLayer < Layer
 
@@ -16,20 +15,39 @@ module TiledTmx
 		attr_accessor :encoding
 		attr_accessor :compression
 		
-		def initialize(node = {})
+		def initialize(map,node = {})
+			@data = Array.new(map.width*map.height,0)
 			super
-			@data = Array.new(@width*@height,0)
 		end
+		
+		def initialize_copy(old)
+			super
+			@data = old[0..-1]
+		end
+		
 		def [](i)
 			return @data[i]
 		end
 		def []=(i,value)
 			return @data[i]=value
 		end
+
+		#
+		def map=(value)
+			super
+			return value unless map
+			size = @map.width*@map.height
+			@data = @data[0,size]
+			@data[size - 1] ||= 0
+			@data.map! {|id|id || 0}
+			return value
+		end
+
 		def data
 			case @encoding
 			when "csv"
-				temp = @data.each_slice(@width).map{|s|s.join(",")}.join(",\n")
+				width = @map ? @map.width : @data.size
+				temp = @data.each_slice(width).map{|s|s.join(",")}.join(",\n")
 			when nil
 				temp = @data
 			else
@@ -87,7 +105,7 @@ module TiledTmx
     # == Parameter
     # [map]
     #   The TiledTmx::Map object you want to map this layer onto.
-    #   This is required, because a Layer doesn’t know about its
+    #   Th		def initialize(map, node = {})is is required, because a Layer doesn’t know about its
     #   height and width, which must therefore be taken from a
     #   map. However, as a Layer also doesn’t know about any maps,
     #   we must request this object to use it for the height and
@@ -149,9 +167,9 @@ module TiledTmx
         # Now `gid' contains solely the tileset position information. Use it to
         # find the first tileset whose first global ID is smaller or equal to
         # the global ID of the tile `gid' represents.
-        tileset_gid = map.tilesets.keys.sort.reverse.find{|first_gid| first_gid <= gid}
+        tileset_gid = map.each_tileset_key.sort.reverse.find{|first_gid| first_gid <= gid}
         raise("Cannot resolve tileset GID: #{tileset_gid}!") unless tileset_gid
-        tileset = map.tilesets[tileset_gid]
+        tileset = map.get_tileset(tileset_gid)
         # The tile IDs inside the tileset are relative to 0, but the GID we
         # have for our tile is global for all tilesets. As we already determined
         # which tileset it specifies above, we can just convert the absolute GID
@@ -197,7 +215,7 @@ module TiledTmx
 		end
 		
 		
-		def self.load_xml(node)
+		def self.load_xml(map,node)
 			temp = super
 			
 			temp.encoding = node.xpath("data")[0][:encoding]
