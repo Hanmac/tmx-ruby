@@ -2,7 +2,15 @@
 require "rake"
 require "rubygems/package_task"
 require "rdoc/task"
-load "ruby-tmx.gemspec"
+
+desc "Run the test suite."
+task :test do
+  cd "tests" do
+    Dir["test_*.rb"].each do |file|
+      load(file)
+    end
+  end
+end
 
 RDoc::Task.new do |rt|
   rt.title = "Ruby-TMX RDocs"
@@ -12,4 +20,5 @@ RDoc::Task.new do |rt|
                         "lib/**/*.rb")
 end
 
+load "ruby-tmx.gemspec"
 Gem::PackageTask.new(GEMSPEC).define

@@ -21,7 +21,9 @@ EOF
 
   # Dependencies
   spec.add_dependency("nokogiri")
-
+  spec.add_dependency("rbtree")
+  spec.add_development_dependency("turn")
+  
   # Gem contents
   spec.files = ["README",
 #                "COPYING",

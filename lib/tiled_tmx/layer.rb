@@ -18,6 +18,8 @@ module TiledTmx
 			@visible = case node[:visible]
 			when String
 				node[:visible] != "0"
+			when Integer
+				node[:visible] != 0
 			when nil
 				true
 			else

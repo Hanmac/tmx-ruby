@@ -13,6 +13,9 @@ module TiledTmx
 			def to_s
 				return "#{x},#{y}"
 			end
+			def ==(point)
+				return @x == point.x && @y == point.y
+			end
 		end
 		
 		include PropertySet
@@ -26,8 +29,11 @@ module TiledTmx
 		attr_accessor :width
 		attr_accessor :height
 		
-		attr_accessor :polygon
-		attr_accessor :polyline
+		#attr_accessor :polygon
+		#attr_accessor :polyline
+		
+		attr_accessor :points
+		
 		def initialize(node = {})
 
 			@name = node[:name]
@@ -40,12 +46,37 @@ module TiledTmx
 			@x = node[:x].to_i
 			@y = node[:y].to_i
 
-			@polygon = []
-			@polyline = []
+			#@polygon = []
+			#@polyline = []
+			
+			@points = []
+			@polygon = false
 			
 			super
 		end
+
+		def points_string
+			return @points.map(&:to_s).join(" ")
+		end
 		
+		def points_string=(string)
+			@points = string.split(" ").map {|cord| Point.new(*cord.split(",").map(&:to_i)) }
+		end
+		def polygon=(string)
+			self.points_string=string
+			@polygon = true
+		end
+		
+		def polyline=(string)
+			self.points_string=string
+			@polygon = false
+		end
+		
+		def initialize_copy(old)
+			super
+			@points = Marshal::load(Marshal::dump(old.points))
+		end
+
 		def draw(map,x_off,y_off,z_off,color,opacity,x_scale,y_scale)
 				z = z_off
 				
@@ -74,26 +105,28 @@ module TiledTmx
 				set.draw(id,
 					x_off + @x*x_scale, y_off + (@y - set.tileheight)*y_scale,
 					z,opacity,0,x_scale,y_scale)
-			elsif !@polygon.empty?
-#				#TODO the triangle drawing is not perfect if the polygon is concav
-#				#each_cons(3)
-#				(@polygon + [@polygon[0]]).each_with_index.group_by{|obj,i|i / 3}.each_value{|k|
-#				k.map {|(v,i)|v}.tap{|(a,b,c)|
-#					draw_triangle(
-#						x_off+(x+a.x)*x_scale,y_off+(y+a.y)*y_scale,
-#						x_off+(x+b.x)*x_scale,y_off+(y+b.y)*y_scale,
-#						x_off+(x+c.x)*x_scale,y_off+(y+c.y)*y_scale,
-#						z_off,color,opacity
-#					)
-#				}
-#				}
-			elsif !@polyline.empty?
-				@polyline.each_cons(2).each {|a,b|
-					draw_line(
-					(@x+a.x)*x_scale+x_off,(@y+a.y)*y_scale+y_off,
-					(@x+b.x)*x_scale+x_off,(@y+b.y)*y_scale+y_off,
-					z_off,color,opacity)
-				}
+			elsif !@points.empty?
+				if @polygon
+#					#TODO the triangle drawing is not perfect if the polygon is concav
+#					#each_cons(3)
+#					(@points + [@points[0]]).each_with_index.group_by{|obj,i|i / 3}.each_value{|k|
+#					k.map {|(v,i)|v}.tap{|(a,b,c)|
+#						draw_triangle(
+#							x_off+(x+a.x)*x_scale,y_off+(y+a.y)*y_scale,
+#							x_off+(x+b.x)*x_scale,y_off+(y+b.y)*y_scale,
+#							x_off+(x+c.x)*x_scale,y_off+(y+c.y)*y_scale,
+#							z_off,color,opacity
+#						)
+#					}
+#					}
+				else
+					@points.each_cons(2).each {|a,b|
+						draw_line(
+						(@x+a.x)*x_scale+x_off,(@y+a.y)*y_scale+y_off,
+						(@x+b.x)*x_scale+x_off,(@y+b.y)*y_scale+y_off,
+						z_off,color,opacity)
+					}
+				end
 			elsif !@width.nil? && !@height.nil?
 				draw_rect(
 					x_off+@x*x_scale,
@@ -119,15 +152,8 @@ module TiledTmx
 			
 			temp.load_xml_properties(node)
 			
-			node.xpath("polygon").each{|obj|
-				obj["points"].split(" ").each {|cord|
-					temp.polygon << Point.new(*cord.split(",").map(&:to_i))
-				}
-			}
-			node.xpath("polyline").each{|obj|
-				obj["points"].split(" ").each {|cord|
-					temp.polyline << Point.new(*cord.split(",").map(&:to_i))
-				}
+			node.xpath("polygon|polyline").each{|obj|
+				temp.send("#{temp[name]}=",obj[:points])
 			}
 			return temp
 		end
@@ -141,11 +167,7 @@ module TiledTmx
 			
 			xml.object(hash.merge({:x=>@x,:y=>@y})) {
 				to_xml_properties(xml)
-				if !@polygon.empty?
-					xml.polygon(:points=>@polygon.map(&:to_s).join(" "))
-				elsif !@polyline.empty?
-					xml.polyline(:points=>@polyline.map(&:to_s).join(" "))
-				end
+				xml.send(@polygon ? :polygon : :polyline, :points=>points_string) if !@points.empty?
 			}
 		end
 	end
@@ -159,7 +181,7 @@ module TiledTmx
 		
 		def initialize(map,node = {})
 			super
-			@objects = {}
+			@objects = []
 			@color = node[:color] unless node[:color].nil?
 		end
 		
@@ -174,13 +196,13 @@ module TiledTmx
 			return self
 		end
 		
-		def draw(map,x_off,y_off,z_off,x_scale,y_scale)
+		def draw(x_off,y_off,z_off,x_scale,y_scale)
 				z = z_off
 				
 				z_prop = @properties["z"]
 				z = z_prop.to_i if(z_prop)
 
-			@objects.each {|obj| obj.draw(map,x_off,y_off,z,color,opacity,x_scale,y_scale) }
+			@objects.each {|obj| obj.draw(@map,x_off,y_off,z,color,opacity,x_scale,y_scale) }
 		end
 
 		def self.load_xml(map,node)

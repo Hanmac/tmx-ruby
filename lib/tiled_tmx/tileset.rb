@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-require_relative "path"
 
 module TiledTmx
 	class Tileset
@@ -75,6 +74,8 @@ module TiledTmx
 		attr_accessor :width
 		attr_accessor :height
 		
+		attr_accessor :tileoffset_x,:tileoffset_y
+		
 		attr_accessor :spacing
 		attr_accessor :margin
 		
@@ -82,6 +83,8 @@ module TiledTmx
 		
 		attr_accessor :tiles
 		attr_accessor :terrains
+		
+		attr_accessor :dtd
 		
 		def initialize(node = {})
 			@name = node[:name]
@@ -92,8 +95,14 @@ module TiledTmx
 			@spacing = node[:spacing].to_i
 			@margin = node[:margin].to_i
 			
+			@width = node[:width].to_i unless node[:width].nil?
+			@height = node[:height].to_i unless node[:height].nil?
+			
+			@tileoffset_x = node[:tileoffset_x].to_i
+			@tileoffset_y = node[:tileoffset_y].to_i
+			
 			super
-			@tiles = {}
+			@tiles = RBTree.new
 			@terrains = []
 		end
 		
@@ -105,26 +114,33 @@ module TiledTmx
 			super
 			@tiles = Marshal::load(Marshal::dump(old.tiles))
 			@terrains = Marshal::load(Marshal::dump(old.terrains))
-			@source = old.source.dup
+			old_source = old.source
+			@source = old_source ? old_source.dup : nil
 		end
 
     # Returns the position of the tile specified by +id+
     # on the tileset graphic, in pixels. +id+ is starts at
-    # 1 for the top-left tile and ends at width*height at
+    # 0 for the top-left tile and ends at +num_tiles+ at
     # the bottom-right tile. Return value is a two-element
-    # array of form [x, y].
-    #
-    # FIXME: This method should take @spacing and @margin
-    # into account.
-    def tile_position(id)
-      width  = @width / @tilewidth
-      height = @height / @tileheight
+    # array of form [x, y] or returns nil if +id+ is out of bounds.
 
-      x = id % width
-      y = id / width
+		def tile_position(id)
+			width , height  = dimension
+			
+			return nil if id >= width * height
+			x = id % width
+			y = id / width
 
-      [x * @tilewidth, y * @tileheight]
-    end
+			[x,y].zip([@tilewidth,@tileheight]).map {|c,l| c * (l + @spacing) + @margin }
+		end
+		
+		def dimension
+			[@width,@height].zip([@tilewidth,@tileheight]).map {|s,l| (s - @margin * 2 + @spacing) / (l + @spacing)}
+		end
+		
+		def num_tiles
+			dimension.inject(:*)
+		end
 		
 		def to_xml(xml,k=nil)
 			
@@ -140,7 +156,8 @@ module TiledTmx
 			
 			xml.tileset(hash) {
 				to_xml_properties(xml)
-				xml.image(:source=>@source.relpath,:width=>@width,:height=>@height)
+				xml.tileoffset(:x=>@tileoffset_x,:y=>@tileoffset_y) unless @tileoffset_x.zero? && @tileoffset_y.zero?
+				xml.image(:source=>@source ? @source.relpath : "",:width=>@width,:height=>@height)
 				xml.terraintypes {
 					@terrains.each  {|v|v.to_xml(xml)}
 				} unless @terrains.empty?
@@ -151,6 +168,24 @@ module TiledTmx
 		def external?
 			return Tileset.sets.has_value?(self)
 		end
+		
+		def external!(path, opts = {})
+		
+			@dtd = opts.has_key?(:dtd) ? opts[:dtd] : @dtd
+			path = Pathname.new(path).expand_path
+			builder = Nokogiri::XML::Builder.new(:encoding => opts[:encoding] || 'UTF-8') do |xml|
+				xml.doc.create_internal_subset("tileset",nil,"http://mapeditor.org/dtd/1.0/map.dtd") if @dtd
+				to_xml(xml)
+			end
+			File.write(path,builder.to_xml(:indent => INDENT))
+			Tileset.sets[path] = self
+			return self
+		end
+		
+		def external(path, opts = {})
+			return dup.external!(path,opts)
+		end
+		
 		
 		@sets = {}
 		class << self
@@ -180,23 +215,30 @@ module TiledTmx
 				if(!node.is_a?(Nokogiri::XML::Node))
 					s = Pathname.new(node.to_s)
 					if(!@sets.include?(s))
-						@sets[s]=load_xml(
-							File.open(s) { |io| Nokogiri::XML(io).root}
-						)
+						root = Nokogiri::XML(File.read(s)).root
+						temp = load_xml(root)
+						temp.dtd = !!root.internal_subset
+						@sets[s] = temp
 					end
 					return @sets[s]
 				end
 				temp = new(node)
 				
-				temp.width = node.xpath("image")[0][:width].to_i
-				temp.height = node.xpath("image")[0][:height].to_i
+				if offset = node.xpath("tileoffset")[0]
+					temp.tileoffset_x = offset[:x].to_i
+					temp.tileoffset_y = offset[:y].to_i
+				end
+				
+				if image = node.xpath("image")[0]
+					temp.width = image[:width].to_i
+					temp.height = image[:height].to_i
+					temp.source = Path.new(image[:source].to_s,node)
+				end
 				
 				temp.terrains = node.xpath("terraintypes/terrain").map {|obj| Terrain.load_xml(obj)}
 				
 				temp.load_xml_properties(node)
-			
-				temp.source = Path.new(node.xpath("image")[0][:source],node)
-			
+				
 				node.xpath("tile").each {|obj|
 					temp.tiles[obj[:id].to_i]=Tile.load_xml(obj)
 				}

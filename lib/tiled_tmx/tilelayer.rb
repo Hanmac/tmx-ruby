@@ -16,7 +16,8 @@ module TiledTmx
 		attr_accessor :compression
 		
 		def initialize(map,node = {})
-			@data = Array.new(map.width*map.height,0)
+			size = map ? map.width*map.height : 0
+			@data = Array.new(size,0)
 			super
 		end
 		
@@ -37,6 +38,7 @@ module TiledTmx
 			super
 			return value unless map
 			size = @map.width*@map.height
+			return value if size == @data.size
 			@data = @data[0,size]
 			@data[size - 1] ||= 0
 			@data.map! {|id|id || 0}
@@ -98,18 +100,11 @@ module TiledTmx
 		end
 
     # call-seq:
-    #   each_tile(map)                                                → an_enumerator
-    #   each_tile(map){|x, y, tile, tileset, relative_id, flips| ...}
+    #   each_tile                                                → an_enumerator
+    #   each_tile{|x, y, tile, tileset, relative_id, flips| ...}
     #
     # Map the layer onto +map+ and iterate over the result.
     # == Parameter
-    # [map]
-    #   The TiledTmx::Map object you want to map this layer onto.
-    #   Th		def initialize(map, node = {})is is required, because a Layer doesn’t know about its
-    #   height and width, which must therefore be taken from a
-    #   map. However, as a Layer also doesn’t know about any maps,
-    #   we must request this object to use it for the height and
-    #   width. values.
     # [x (block)]
     #   The current X coordinate (in map fields).
     # [y (block)]
@@ -129,7 +124,7 @@ module TiledTmx
     #   all values are guaranteed to be +false+.
     # == Return value
     # Undefined, if a block is given. An Enumerator otherwise.
-    def each_tile(map)
+    def each_tile
       return enum_for(__method__) unless block_given?
 
       @data.each_with_index do |gid, index|
@@ -151,7 +146,7 @@ module TiledTmx
         # We therefore just skip all the style calculations
         # below.
         if gid.zero?
-          yield(x, y, nil, nil, {:diagonal => false, :horizontal => false, :vertical => false})
+          yield(x, y, nil, nil,nil, {:diagonal => false, :horizontal => false, :vertical => false})
           next
         end
 
@@ -167,28 +162,19 @@ module TiledTmx
         # Now `gid' contains solely the tileset position information. Use it to
         # find the first tileset whose first global ID is smaller or equal to
         # the global ID of the tile `gid' represents.
-        tileset_gid = map.each_tileset_key.sort.reverse.find{|first_gid| first_gid <= gid}
-        raise("Cannot resolve tileset GID: #{tileset_gid}!") unless tileset_gid
-        tileset = map.get_tileset(tileset_gid)
-        # The tile IDs inside the tileset are relative to 0, but the GID we
-        # have for our tile is global for all tilesets. As we already determined
-        # which tileset it specifies above, we can just convert the absolute GID
-        # into a one relative to the determined tileset by removing the absolute
-        # part from it.
-        relative_id = gid - tileset_gid
-        tile = tileset.tiles[relative_id]
-
+        tile, relative_id, tileset = @map.get_tile(gid)
         # Tell our customer
         yield(x, y, tile, relative_id, tileset, flips)
       end
+      return self
     end
 		
-		def draw(map,x_off,y_off,z_off,x_scale,y_scale,&block)
-			each_tile(map){|x, y, tile, relative_id, tileset, flips|
+		def draw(x_off,y_off,z_off,x_scale,y_scale,&block)
+			each_tile {|x, y, tile, relative_id, tileset, flips|
 				
 				next if tileset.nil?
-				x = x_off + map.tilewidth*x*x_scale 
-				y = y_off + map.tileheight*y*y_scale - tileset.tileheight + map.tileheight
+				x = x_off + tileset.tileoffset_x + map.tilewidth*x*x_scale 
+				y = y_off + tileset.tileoffset_y + map.tileheight*y*y_scale - tileset.tileheight + map.tileheight
 				
 				z = z_off
 				
@@ -198,10 +184,8 @@ module TiledTmx
 				if(tile)
 					z_prop = tile.properties["z"]
 					if(z_prop)
-						if z_prop[0]=='+'
+						if ["+","-"].include?(z_prop[0])
 							z += z_prop.to_i
-						elsif z_prop[0]=='-'
-							z -= z_prop.to_i
 						else
 							z = z_prop.to_i
 						end
@@ -218,12 +202,12 @@ module TiledTmx
 		def self.load_xml(map,node)
 			temp = super
 			
-			temp.encoding = node.xpath("data")[0][:encoding]
-			temp.compression = node.xpath("data")[0][:compression]
-			if (temp.encoding.nil?)
-				temp.data = node.xpath("data/tile").map {|t| t[:gid].to_i}
-			else
+			data =node.xpath("data")[0]
+			temp.compression = data[:compression]
+			if (temp.encoding = data[:encoding])
 				temp.data = node.xpath("data").text
+			else#load as data as xml
+				temp.data = node.xpath("data/tile").map {|t| t[:gid].to_i}
 			end
 			return temp
 		end

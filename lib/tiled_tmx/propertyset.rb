@@ -4,7 +4,7 @@ module TiledTmx
 		attr_accessor :properties
 		
 		def initialize(*)
-			@properties = {}
+			@properties = RBTree.new
 		end
 		def initialize_copy(old)
 			super
@@ -12,7 +12,6 @@ module TiledTmx
 		end
 		
 		def load_xml_properties(node)
-			p self unless @properties
 			node.xpath("properties/property").each {|obj|
 				@properties[obj[:name]]=obj[:value]
 			}
