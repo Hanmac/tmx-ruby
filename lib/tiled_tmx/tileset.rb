@@ -215,7 +215,7 @@ module TiledTmx
 				if(!node.is_a?(Nokogiri::XML::Node))
 					s = Pathname.new(node.to_s)
 					if(!@sets.include?(s))
-						root = Nokogiri::XML(File.read(s)).root
+						root = File.open(s){|io|Nokogiri::XML(io).root}
 						temp = load_xml(root)
 						temp.dtd = !!root.internal_subset
 						@sets[s] = temp
