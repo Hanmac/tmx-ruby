@@ -29,9 +29,6 @@ module TiledTmx
 		attr_accessor :width
 		attr_accessor :height
 		
-		#attr_accessor :polygon
-		#attr_accessor :polyline
-		
 		attr_accessor :points
 		
 		def initialize(node = {})
@@ -46,8 +43,6 @@ module TiledTmx
 			@x = node[:x].to_i
 			@y = node[:y].to_i
 
-			#@polygon = []
-			#@polyline = []
 			
 			@points = []
 			@polygon = false
@@ -153,7 +148,7 @@ module TiledTmx
 			temp.load_xml_properties(node)
 			
 			node.xpath("polygon|polyline").each{|obj|
-				temp.send("#{temp[name]}=",obj[:points])
+				temp.send("#{obj[:name]}=",obj[:points])
 			}
 			return temp
 		end
