@@ -19,6 +19,8 @@ module TiledTmx
 			size = map ? map.width*map.height : 0
 			@data = Array.new(size,0)
 			super
+			@encoding = node[:encoding]
+			@compression = node[:compression]
 		end
 		
 		def initialize_copy(old)
