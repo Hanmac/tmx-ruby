@@ -65,9 +65,10 @@ module TiledTmx
 			return layer
 		end
 
-		def each_layer(&block)
+		def each_layer(type = Layer)
 			return to_enum(__method__) unless block_given?
-			@layers.each(&block)
+			type = LayerTypes[type.to_s] unless type.is_a?(Layer)
+			@layers.each {|l|yield l if l.is_a?(type)}
 			return self
 		end
 		
