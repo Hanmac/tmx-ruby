@@ -67,7 +67,7 @@ module TiledTmx
 
 		def each_layer(type = Layer)
 			return to_enum(__method__) unless block_given?
-			type = LayerTypes[type.to_s] unless type.is_a?(Layer)
+			type = LayerTypes[type.to_s] unless type.is_a?(Class)
 			@layers.each {|l|yield l if l.is_a?(type)}
 			return self
 		end
@@ -76,6 +76,11 @@ module TiledTmx
 
 		def get_layer(id)
 			return @layers[id]
+		end
+		
+		def get_layer_index(layer=nil)
+			return (each_layer.with_index.find{|(l)| yield l } || [])[1] if block_given?
+			return @layers.index(layer)
 		end
 
 		def each_tileset(&block)

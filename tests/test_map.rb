@@ -40,6 +40,9 @@ class MapTest < Test::Unit::TestCase
 		assert_equal(map, map.get_layer(1).map)
 		assert_equal(map, map.get_layer(2).map)
 		
+		assert_equal(2, map.get_layer_index(map.get_layer(2)))
+		assert_equal(2, map.get_layer_index{|l|l.class == ImageLayer})
+		assert_equal(2, map.get_layer(2).index)
 		
 		
 	end
