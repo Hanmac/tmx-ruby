@@ -3,6 +3,7 @@ require "nokogiri"
 
 require "rbtree"
 require "pathname"
+require "json"
 
 class RBTree
 	def ==(other)

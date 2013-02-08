@@ -87,16 +87,18 @@ module TiledTmx
 		attr_accessor :dtd
 		
 		def initialize(node = {})
-			@name = node[:name]
+			@name = (node[:name] || node["name"])
 			
-			@tilewidth = node[:tilewidth].to_i
-			@tileheight = node[:tileheight].to_i
+			@tilewidth = (node[:tilewidth] || node["tilewidth"]).to_i
+			@tileheight = (node[:tileheight] || node["tileheight"]).to_i
 			
-			@spacing = node[:spacing].to_i
-			@margin = node[:margin].to_i
+			@spacing = (node[:spacing] || node["spacing"]).to_i
+			@margin = (node[:margin] || node["margin"]).to_i
 			
-			@width = node[:width].to_i unless node[:width].nil?
-			@height = node[:height].to_i unless node[:height].nil?
+			temp = node[:width]  || node[:imagewidth] || node["imagewidth"]
+			@width = temp.to_i unless temp.nil?
+			temp = node[:height] || node[:imageheight] || node["imageheight"]
+			@height = temp.to_i unless temp.nil?
 			
 			@tileoffset_x = node[:tileoffset_x].to_i
 			@tileoffset_y = node[:tileoffset_y].to_i
@@ -191,6 +193,12 @@ module TiledTmx
 		class << self
 			attr_accessor :sets
 
+			def load_json(node,pathname)
+				temp = new(node)
+				temp.source = Path.new(node["image"],pathname)
+				node["tileproperties"].to_a.each {|k,props| temp.tiles[k]=Tile.new(:id => k, :properties => props) }
+				return temp
+			end
       # Loads a tileset from either an XML node or an external TSX file.
       # == Parameter
       # [node]

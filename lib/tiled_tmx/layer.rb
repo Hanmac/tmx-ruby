@@ -12,18 +12,20 @@ module TiledTmx
 		
 		def initialize(map, node = {})
 			self.map = map
-			@name = node[:name]
-			@opacity = node[:opacity].nil? ? 1.0 : node[:opacity].to_f
+			@name = (node[:name] || node["name"] )
+			@opacity = (node[:opacity] || node["opacity"] || 1.0 ).to_f
 			
-			@visible = case node[:visible]
+			visible = node[:visible]
+			visible = node["visible"] if visible.nil?
+			@visible = case visible
 			when String
-				node[:visible] != "0"
+				visible != "0"
 			when Integer
-				node[:visible] != 0
+				visible != 0
 			when nil
 				true
 			else
-				!!node[:visible]
+				!!visible
 			end
 			
 			super

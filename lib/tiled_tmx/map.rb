@@ -5,6 +5,7 @@ module TiledTmx
 	LayerTypes = {
 		"layer" => TileLayer,
 		"tile" => TileLayer,
+		"tilelayer" => TileLayer,
 		"objectgroup" => ObjectGroup,
 		"imagelayer" => ImageLayer
 	}
@@ -25,14 +26,14 @@ module TiledTmx
 		attr_accessor :dtd
 
 		def initialize(node = {})
-			@height = node[:height].to_i
-			@width = node[:width].to_i
-			@tileheight = node[:tileheight].to_i
-			@tilewidth = node[:tilewidth].to_i
+			@height = (node[:height] || node["height"]).to_i
+			@width = (node[:width] || node["width"]).to_i
+			@tileheight = (node[:tileheight] || node["tileheight"]).to_i
+			@tilewidth = (node[:tilewidth] || node["tilewidth"]).to_i
 			
-			@orientation = (node[:orientation] || :orthogonal).to_sym
+			@orientation = (node[:orientation] || node["orientation"] || :orthogonal).to_sym
 			
-			@backgroundcolor = node[:backgroundcolor]
+			@backgroundcolor = (node[:backgroundcolor] || node["backgroundcolor"])
 			
 			@tilesets=RBTree.new
 			@layers = []
@@ -66,7 +67,7 @@ module TiledTmx
 		end
 
 		def each_layer(type = Layer)
-			return to_enum(__method__) unless block_given?
+			return to_enum(__method__,type) unless block_given?
 			type = LayerTypes[type.to_s] unless type.is_a?(Class)
 			@layers.each {|l|yield l if l.is_a?(type)}
 			return self
@@ -148,7 +149,6 @@ module TiledTmx
 			doc = File.open(pathname) { |io| Nokogiri::XML(io) }
 			#p doc.validate
 			root = doc.root
-			
 			temp = new(root)
 			
 
@@ -171,6 +171,13 @@ module TiledTmx
 			return temp
 		end
 
+		def self.load_json(pathname)
+			hash = JSON(File.read(pathname))
+			temp = new(hash)
+			hash["tilesets"].each {|s|temp.add_tileset(Tileset.load_json(s,pathname),s["firstgid"])}
+			hash["layers"].each{|l|temp.add_layer(l["type"],l)}
+			return temp
+		end
 		#call-seq:
 		#	 to_xml()     → a_string
 		#	 to_xml(path)

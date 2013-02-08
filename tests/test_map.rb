@@ -27,22 +27,30 @@ class MapTest < Test::Unit::TestCase
 		map = Map.new(:width=>256, :height=>576,:tileheight => 32,
 					:tilewidth => 32)
 		tilelayer = map.add_layer(:tile)
+		tilelayer = map.add_layer(:tile)
 		object_group = map.add_layer(:objectgroup)
 		map.add_layer(:imagelayer)
 		
-		assert_equal(3, map.layers.count)
+		assert_equal(4, map.layers.count)
+		
+		assert_equal(2, map.layers(TileLayer).count)
+		assert_equal(1, map.layers(ObjectGroup).count)
+		assert_equal(1, map.layers(ImageLayer).count)
+		
+		assert_equal(2, map.layers(:tile).count)
+		assert_equal(1, map.layers(:objectgroup).count)
+		assert_equal(1, map.layers(:imagelayer).count)
 		
 		assert_equal(TileLayer, map.get_layer(0).class)
-		assert_equal(ObjectGroup, map.get_layer(1).class)
-		assert_equal(ImageLayer, map.get_layer(2).class)
-
-		assert_equal(map, map.get_layer(0).map)
-		assert_equal(map, map.get_layer(1).map)
-		assert_equal(map, map.get_layer(2).map)
+		assert_equal(TileLayer, map.get_layer(1).class)
+		assert_equal(ObjectGroup, map.get_layer(2).class)
+		assert_equal(ImageLayer, map.get_layer(3).class)
 		
-		assert_equal(2, map.get_layer_index(map.get_layer(2)))
-		assert_equal(2, map.get_layer_index{|l|l.class == ImageLayer})
-		assert_equal(2, map.get_layer(2).index)
+		4.times {|i|assert_equal(map, map.get_layer(i).map)}
+		
+		assert_equal(3, map.get_layer_index(map.get_layer(3)))
+		assert_equal(3, map.get_layer_index{|l|l.class == ImageLayer})
+		assert_equal(3, map.get_layer(3).index)
 		
 		
 	end

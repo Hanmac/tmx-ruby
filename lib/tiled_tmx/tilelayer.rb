@@ -17,10 +17,10 @@ module TiledTmx
 		
 		def initialize(map,node = {})
 			size = map ? map.width*map.height : 0
-			@data = Array.new(size,0)
+			@data = (node[:data] || node["data"] || Array.new(size,0))
 			super
-			@encoding = node[:encoding]
-			@compression = node[:compression]
+			@encoding = (node[:encoding] || node["encoding"])
+			@compression = (node[:compression] || node["compression"])
 		end
 		
 		def initialize_copy(old)

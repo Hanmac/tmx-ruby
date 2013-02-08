@@ -33,15 +33,15 @@ module TiledTmx
 		
 		def initialize(node = {})
 
-			@name = node[:name]
-			@type = node[:type]
+			@name = (node[:name] || node["name"])
+			@type = (node[:type] || node["type"])
 			
 			@gid = node[:gid].to_i unless node[:gid].nil?
 			@width = node[:width].to_i unless node[:width].nil?
 			@height = node[:height].to_i unless node[:height].nil?
 			
-			@x = node[:x].to_i
-			@y = node[:y].to_i
+			@x = (node[:x] || node["x"]).to_i
+			@y = (node[:y] || node["y"]).to_i
 
 			
 			@points = []
@@ -176,8 +176,8 @@ module TiledTmx
 		
 		def initialize(map,node = {})
 			super
-			@objects = []
-			@color = node[:color] unless node[:color].nil?
+			@objects = (node["objects"] || []).map {|h| Object.new(h)}
+			@color = (node[:color] || node["color"] || nil)
 		end
 		
 		def initialize_copy(old)
