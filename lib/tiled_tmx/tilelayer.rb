@@ -39,12 +39,18 @@ module TiledTmx
 		def map=(value)
 			super
 			return value unless map
-			size = @map.width*@map.height
-			return value if size == @data.size
+			resize(@map.width,@map.height)
+			return value
+		end
+
+		def resize(width,height)
+			super
+			size = width * height
+			return nil if size == @data.size
 			@data = @data[0,size]
 			@data[size - 1] ||= 0
 			@data.map! {|id|id || 0}
-			return value
+			return nil
 		end
 
 		def data

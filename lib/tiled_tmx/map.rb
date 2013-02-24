@@ -17,7 +17,7 @@ module TiledTmx
 		
 		attr_accessor :orientation
 		
-		attr_accessor :height, :width
+		attr_reader :height, :width
 
 		attr_accessor :tileheight, :tilewidth
 
@@ -49,6 +49,26 @@ module TiledTmx
 				@tilesets[k] = v.external? ? v : v.dup
 			}
 			old.each_layer {|l|add_layer(l.dup)}
+		end
+		
+		def resize(width,height)
+			@width,@height = width,height
+			each_layer {|layer| layer.resize(@width,@height) }
+			return nil
+		end
+		
+		def height=(value)
+			if @height != value
+				resize @width,value
+			end
+			return value
+		end
+		
+		def width=(value)
+			if @width != value
+				resize value,@height
+			end
+			return value
 		end
 		
 		def draw(x,y,z,x_scale = 1, y_scale = 1,&block)

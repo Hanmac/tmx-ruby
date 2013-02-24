@@ -40,6 +40,9 @@ module TiledTmx
 			return @map ? @map.get_layer_index(self) : nil
 		end
 		
+		def resize(width,height)
+		end
+		
 		def self.load_xml(map,node)
 			obj = new(map,node)
 			
