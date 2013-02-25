@@ -23,6 +23,20 @@ class MapTest < Test::Unit::TestCase
 		assert_equal(145, map.next_first_gid) # 144 tiles
 		
 	end
+	def test_resize
+		map = Map.new(:width=>2, :height=>3)
+		tilelayer = map.add_layer(:tile)
+		
+		assert_equal(6, tilelayer[0..-1].size)
+		map.width = 3
+		assert_equal(9, tilelayer[0..-1].size)
+		map.height = 4
+		assert_equal(12, tilelayer[0..-1].size)
+		map.width = 2
+		map.height = 2
+		assert_equal(4, tilelayer[0..-1].size)
+	end
+	
 	def test_layers
 		map = Map.new(:width=>256, :height=>576,:tileheight => 32,
 					:tilewidth => 32)
